@@ -1,81 +1,62 @@
 #!/usr/bin/env node
 
-_ = require('lodash');
+argv = { throttle: 300, queue: 1000, ...require('minimist')(process.argv.slice(2)) }
 
-var argv = require('minimist')(process.argv.slice(2));
-
-defaults = {
-    milliseconds:300,
-    "max-queue":1000,
-    queue:true
-};
-
-argv = _.merge(defaults,argv)
-
-if (argv.m)
-    argv.milliseconds=argv.m;
+if (argv.t)
+    argv.throttle=argv.t
 
 if (argv.q)
-    argv.queue=argv.q;
+    argv.queue=argv.q
 
-if (argv.x)
-    argv["max-queue"]=argv.x;
+process.stdin.resume()
+process.stdin.setEncoding('utf8')
 
-process.stdin.resume();
-process.stdin.setEncoding('utf8');
-
-var lingeringLine = "";
-
-var Throttler = function(options){
-    var lastTime=0;
-    var self=this;
-    this.lines=[];
-    this.finished=false;
-    this.finish=function(){
-        this.finished=true;
-        checkFinished();
+class Throttler {
+    constructor(options) {
+        this.lastTime = 0
+        this.lines = []
+        this.finished = false
+        setInterval(() => this.processLine(), 10)
     }
-    this.pushLine=function(line){
-        if (self.lines.length<argv["max-queue"])
-            this.lines.push(line);
+
+    finish() {
+        this.finished = true
+        this.checkFinished()
     }
-    var checkFinished=function(){
-        if (self.lines.length==0 && self.finished) {
-            process.exit(0);
+
+    pushLine(line) {
+        this.lines.length < argv.queue && this.lines.push(line)
+    }
+    
+    checkFinished() {
+        this.lines.length == 0 && this.finished && process.exit(0)
+    }
+
+    processLine() {
+        if (this.lines.length == 0)
+            return this.checkFinished()
+        if (Date.now() > this.lastTime + argv.throttle) {
+            this.lastTime = Date.now()
+            console.log(this.lines.shift())
         }
     }
-    var processLine=function(){
-        if (self.lines.length==0) {
-            checkFinished();
-            return false;
-        }
-        var currentTime = new Date();
-        if (+lastTime+argv.milliseconds<+currentTime) {
-            lastTime=new Date();
-            console.log(self.lines[0]);
-            self.lines.shift();
-            if(options.queue==false)
-                self.lines=[];
-            return true;
-        }
-        return false;
-    }
-    setInterval(processLine, 10);
 }
 
-throttler = new Throttler(argv);
+const throttler = new Throttler(argv)
+
+let lingeringLine = ""
 
 process.stdin.on('data', function(chunk) {
-    var lines=chunk.split("\n");
-    lines[0] = lingeringLine + lines[0];
-    lingeringLine = lines.pop();
-    lines.forEach(function(line){
-        throttler.pushLine(line);
-    });
-});
+    const lines = chunk.split('\n')
+    lines[0] = lingeringLine + lines[0]
+    lingeringLine = lines.pop()
+    for (const line of lines) {
+        throttler.pushLine(line)
+    }
+})
 
 process.stdin.on('end', function() {
-    if(lingeringLine.length>0)
-        throttler.pushLine(lingeringLine);
-    throttler.finish();
-});
+    if(lingeringLine.length > 0)
+        throttler.pushLine(lingeringLine)
+    throttler.finish()
+})

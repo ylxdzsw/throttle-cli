@@ -1,18 +1,16 @@
 {
   "name": "throttle-cli",
-  "version": "1.0.1",
-  "description": "",
+  "version": "1.1.0",
   "main": "index.js",
   "bin": {
     "throttle": "index.js"
   },
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
+  "author": "edi9999",
+  "maintainers": [
+    "ylxdzsw@gmail.com"
+  ],
   "license": "ISC",
   "dependencies": {
-    "lodash": "^3.7.0",
     "minimist": "^1.1.1"
   }
 }

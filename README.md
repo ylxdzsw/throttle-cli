@@ -19,4 +19,4 @@ I use that option with inotifywait quite often to have a watcher that doesn't tr
 
 # Installation
 
-    npm install -g git+https://git@github.com/github/throttle-cli
+    npm install -g https://github.com/ylxdzsw/throttle-cli/tarball/master
